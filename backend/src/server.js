@@ -24,9 +24,22 @@ app.post('/orders', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    const normalized = String(userName).trim();
+    const role = normalized.toLocaleLowerCase('tr-TR') === 'elif kaya' ? 'admin' : 'user';
+
+    const userResult = await client.query(
+      `INSERT INTO users (full_name, role)
+       VALUES ($1, $2)
+       ON CONFLICT (full_name) DO UPDATE SET role = EXCLUDED.role
+       RETURNING id`,
+      [normalized, role],
+    );
+    const userId = userResult.rows[0].id;
+
     const orderResult = await client.query(
-      'INSERT INTO orders (user_name, room, note, status) VALUES ($1, $2, $3, $4) RETURNING id',
-      [userName, room, note || '', 'active'],
+      'INSERT INTO orders (user_id, user_name, room, note, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [userId, normalized, room, note || '', 'active'],
     );
     const orderId = orderResult.rows[0].id;
 
@@ -65,8 +78,9 @@ app.get('/orders/user', async (req, res) => {
       `SELECT o.id, o.room, o.note, o.status, o.created_at,
               json_agg(json_build_object('product', i.product_name, 'quantity', i.quantity)) AS items
        FROM orders o
+       JOIN users u ON u.id = o.user_id
        JOIN order_items i ON i.order_id = o.id
-       WHERE o.user_name = $1
+       WHERE u.full_name = $1
        GROUP BY o.id
        ORDER BY o.created_at DESC`,
       [userName],

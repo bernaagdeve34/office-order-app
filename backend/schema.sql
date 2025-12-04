@@ -1,5 +1,13 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  full_name TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL DEFAULT 'user', -- 'user' veya 'admin'
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   user_name TEXT NOT NULL,
   room TEXT NOT NULL,
   note TEXT,
