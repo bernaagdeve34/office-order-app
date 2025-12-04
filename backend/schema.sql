@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS orders (
   note TEXT,
   status TEXT NOT NULL DEFAULT 'active',
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  completed_at TIMESTAMP
+  completed_at TIMESTAMP,
+  original_order_id INTEGER REFERENCES orders(id)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
