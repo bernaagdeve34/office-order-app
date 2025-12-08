@@ -253,6 +253,56 @@ app.post('/orders/:id/complete', async (req, res) => {
   }
 });
 
+app.get('/orders/:id/messages', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT id, sender, text, created_at
+       FROM order_messages
+       WHERE order_id = $1
+       ORDER BY created_at ASC, id ASC`,
+      [id],
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+app.post('/orders/:id/messages', async (req, res) => {
+  const { id } = req.params;
+  const { sender, text } = req.body;
+
+  if (!sender || !text || !String(text).trim()) {
+    return res.status(400).json({ error: 'Gönderici ve metin zorunlu' });
+  }
+
+  if (sender !== 'admin' && sender !== 'user') {
+    return res.status(400).json({ error: 'Geçersiz gönderici' });
+  }
+
+  try {
+    const orderResult = await pool.query('SELECT id FROM orders WHERE id = $1', [id]);
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Sipariş bulunamadı' });
+    }
+
+    const insertResult = await pool.query(
+      `INSERT INTO order_messages (order_id, sender, text)
+       VALUES ($1, $2, $3)
+       RETURNING id, order_id, sender, text, created_at`,
+      [id, sender, String(text).trim()],
+    );
+
+    res.status(201).json(insertResult.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

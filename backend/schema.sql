@@ -23,3 +23,11 @@ CREATE TABLE IF NOT EXISTS order_items (
   product_name TEXT NOT NULL,
   quantity INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE TABLE IF NOT EXISTS order_messages (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  sender TEXT NOT NULL, -- 'admin' veya 'user'
+  text TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
